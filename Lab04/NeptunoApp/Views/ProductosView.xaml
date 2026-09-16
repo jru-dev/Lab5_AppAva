@@ -1,0 +1,101 @@
+﻿<UserControl x:Class="NeptunoApp.Views.ProductosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado -->
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Productos" Style="{StaticResource TituloSeccion}"/>
+                <TextBlock Text="Mantenimiento del catálogo de productos."
+                           Style="{StaticResource TextoAyuda}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Actualizar" Style="{StaticResource BotonSecundario}"
+                        Command="{Binding CargarCommand}" Margin="0,0,8,0"/>
+                <Button Content="Editar" Style="{StaticResource BotonSecundario}"
+                        Command="{Binding EditarCommand}"
+                        CommandParameter="{Binding Seleccionado}" Margin="0,0,8,0"/>
+                <Button Content="Eliminar" Style="{StaticResource BotonPeligro}"
+                        Command="{Binding EliminarCommand}"
+                        CommandParameter="{Binding Seleccionado}" Margin="0,0,8,0"/>
+                <Button Content="Nuevo producto" Style="{StaticResource BotonPrimario}"
+                        Command="{Binding NuevoCommand}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Mensaje de error -->
+        <Border Grid.Row="1" Style="{StaticResource PanelError}"
+                Visibility="{Binding ErrorMessage, Converter={StaticResource TextoToVisibility}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource PeligroBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- Listado -->
+        <Border Grid.Row="2" Style="{StaticResource Tarjeta}" Padding="0">
+            <Grid>
+                <DataGrid ItemsSource="{Binding Productos}"
+                          SelectedItem="{Binding Seleccionado}"
+                          BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ID" Binding="{Binding ProductoID}" Width="55"/>
+                        <DataGridTextColumn Header="Producto" Binding="{Binding NombreProducto}" Width="2*"/>
+                        <DataGridTextColumn Header="Categoría" Binding="{Binding NombreCategoria}" Width="*"/>
+                        <DataGridTextColumn Header="Proveedor" Binding="{Binding NombreProveedor}" Width="*"/>
+                        <DataGridTextColumn Header="Presentación" Binding="{Binding CantidadPorUnidad}" Width="130"/>
+                        <DataGridTextColumn Header="Precio" Width="95"
+                                            Binding="{Binding PrecioUnidad, StringFormat='N2'}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Stock" Width="70"
+                                            Binding="{Binding UnidadesEnExistencia}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="Estado" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Descontinuado" FontSize="12"
+                                                   Foreground="{StaticResource PeligroBrush}"
+                                                   Visibility="{Binding Descontinuado,
+                                                                Converter={StaticResource BoolToVisibility}}"/>
+                                        <TextBlock Text="Reponer" FontSize="12"
+                                                   Foreground="#B26A00"
+                                                   Visibility="{Binding NecesitaReposicion,
+                                                                Converter={StaticResource BoolToVisibility}}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Text="No hay productos registrados."
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Style="{StaticResource TextoAyuda}"
+                           Visibility="{Binding HayRegistros, Converter={StaticResource BoolToVisibility},
+                                        ConverterParameter=Invert}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

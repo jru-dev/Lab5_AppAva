@@ -1,0 +1,52 @@
+﻿<Window x:Class="NeptunoApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:NeptunoApp.Models"
+        Title="Neptuno - Gestión comercial" Height="720" Width="1180"
+        WindowStartupLocation="CenterScreen" MinHeight="600" MinWidth="1000">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="216"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Barra lateral -->
+        <Border Grid.Column="0" Background="{StaticResource SuperficieBrush}"
+                BorderBrush="{StaticResource BordeBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="20,22,20,18">
+                    <TextBlock Text="Neptuno" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Text="Gestión comercial" Style="{StaticResource TextoAyuda}" Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Margin="20,0,20,16">
+                    <Border Height="1" Background="{StaticResource BordeBrush}" Margin="0,0,0,12"/>
+                    <TextBlock Text="Laboratorio 04 - ADO .NET" Style="{StaticResource TextoAyuda}"/>
+                    <TextBlock Text="Base de datos NeptunoDB" Style="{StaticResource TextoAyuda}"/>
+                </StackPanel>
+
+                <StackPanel VerticalAlignment="Top">
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Productos"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Productos}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Categorías"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Categorias}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Proveedores"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Proveedores}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Pedidos"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Pedidos}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Reportes"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Reportes}}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Modulo activo -->
+        <ContentControl Grid.Column="1" Content="{Binding ContenidoActual}"/>
+    </Grid>
+</Window>

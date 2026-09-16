@@ -1,15 +1,10 @@
-# Laboratorio 04 - ADO .NET sobre NeptunoDB
+# Laboratorio 05 - ExecuteNonQuery y eliminación lógica sobre NeptunoDB
 
 Aplicación de escritorio WPF (.NET 10, C#, patrón MVVM) que consume SQL Server
-exclusivamente a través de procedimientos almacenados con ADO .NET.
-
-**Curso:** Desarrollo de Aplicaciones Empresariales Avanzado — 6 · C24 · Sección C - D
-**Docente:** Arévalo Sermeño, Edwin William
-
-**Integrantes:**
-
-- Aguirre Saavedra, Juan Alexis
-- Azañero Pillaca, Vidal Hotaru
+exclusivamente a través de procedimientos almacenados con ADO .NET. Todas las
+operaciones de escritura (alta, actualización y baja) se ejecutan con
+`ExecuteNonQuery`, y la baja es lógica (campo `Activo`), nunca un `DELETE`
+físico.
 
 ## Cómo ejecutarlo
 
@@ -21,6 +16,7 @@ exclusivamente a través de procedimientos almacenados con ADO .NET.
    | 2 | `01_NeptunoDB_Procedimientos.sql` | Procedimientos de categorías, proveedores y productos |
    | 3 | `02_NeptunoDB_Pedidos_Reportes.sql` | Pedidos, detalle de pedidos, catálogos y el reporte por fechas |
    | 4 | `03_NeptunoDB_CorregirAcentos.sql` | Opcional: repara las tildes de los datos de ejemplo |
+   | 5 | `04_NeptunoDB_EliminacionLogica.sql` | Agrega el campo `Activo` a Productos, Categorías, Proveedores y Pedidos; convierte los `usp_*_Eliminar` en baja lógica (`UPDATE Activo = 0`); filtra `Activo = 1` en listados, búsquedas y el reporte; y cambia los `usp_*_Crear` para devolver el ID por parámetro `OUTPUT` en vez de `SELECT SCOPE_IDENTITY()` |
 
    Desde la línea de comandos:
 
@@ -31,6 +27,10 @@ exclusivamente a través de procedimientos almacenados con ADO .NET.
    El paso 4 es opcional: el `NeptunoDB.sql` entregado trae las tildes
    reemplazadas por el carácter U+FFFD, así que "Lácteos" se guarda como
    "L?cteos" en cualquier herramienta. El script las corrige.
+
+   El paso 5 requiere que el 00, 01 y 02 ya se hayan ejecutado. Se puede
+   volver a correr sin problema (usa `CREATE OR ALTER` y verifica si la
+   columna `Activo` ya existe antes de agregarla).
 
 2. Abrir `Neptuno.slnx` en Visual Studio y ejecutar (F5).
 
@@ -69,16 +69,37 @@ procedimientos con `THROW`.
 | Mantenimiento de categorías | Módulo Categorías |
 | Mantenimiento de proveedores + búsqueda con filtros | Módulo Proveedores |
 | Mantenimiento de pedidos + reportes con filtros de fecha | Módulos Pedidos y Reportes |
+| Campo `Activo` en Productos, Categorías, Proveedores y Pedidos | `04_NeptunoDB_EliminacionLogica.sql` |
+| Eliminación lógica (`UPDATE Activo = 0`, nunca `DELETE`) | `usp_Producto_Eliminar`, `usp_Categoria_Eliminar`, `usp_Proveedor_Eliminar`, `usp_Pedido_Eliminar` |
+| Listados y búsquedas que excluyen `Activo = 0` | Todos los `usp_*_Listar`, `usp_*_ObtenerPorId`, `usp_Proveedor_Buscar` y `usp_DetallePedido_ListarPorRangoFechas` |
+| Alta, actualización y baja con `ExecuteNonQuery` | `RepositoryBase.InsertarAsync` / `EjecutarAsync`, invocados desde cada repositorio y desde el botón "Eliminar" de cada vista |
 
 ## Notas de implementación
 
 - `DetallePedidos` tiene clave primaria compuesta `(PedidoID, ProductoID)` y no
-  tiene columna identidad, por eso su alta no devuelve `SCOPE_IDENTITY()` y su
-  edición no permite cambiar el producto de una línea existente.
+  tiene columna identidad, por eso su alta no devuelve un ID nuevo y su
+  edición no permite cambiar el producto de una línea existente. No lleva
+  columna `Activo`: el enunciado solo la pide para Productos, Categorías,
+  Proveedores y Pedidos.
 - Las columnas de fecha son `DATE`, se enlazan como `SqlDbType.Date`.
 - El descuento se guarda como fracción (0.05 = 5 %) y se captura en porcentaje.
-- `usp_Pedido_Eliminar` borra las líneas y la cabecera dentro de una
-  transacción, porque `DetallePedidos` referencia a `Pedidos`.
-- Antes de eliminar una categoría o un proveedor se verifica que no tengan
-  productos asociados, para devolver un mensaje entendible en vez del error
-  crudo de la llave foránea.
+- **Eliminación lógica:** las 4 entidades tienen `Activo BIT NOT NULL DEFAULT 1`.
+  Los `usp_*_Eliminar` ya no hacen `DELETE`, hacen
+  `UPDATE ... SET Activo = 0 WHERE Id = @Id AND Activo = 1`. Si la fila no
+  existe o ya estaba dada de baja, `@@ROWCOUNT = 0` y se lanza un `THROW`.
+  Como ya no se elimina físicamente ninguna fila, se quitaron las
+  validaciones de "no se puede eliminar porque tiene productos/pedidos
+  asociados" (existían para evitar violar una llave foránea con `DELETE`
+  físico, y ya no aplican).
+- `usp_Pedido_Eliminar` ya no necesita transacción ni borrar
+  `DetallePedidos`: solo marca `Pedidos.Activo = 0`.
+- Todos los `usp_*_Listar`, `usp_*_ObtenerPorId`, `usp_Proveedor_Buscar` y
+  `usp_DetallePedido_ListarPorRangoFechas` filtran `Activo = 1`, así que un
+  registro dado de baja desaparece de listados, búsquedas y reportes aunque
+  siga físicamente en la tabla.
+- **Alta con `ExecuteNonQuery`:** los `usp_*_Crear` ya no hacen
+  `SELECT SCOPE_IDENTITY()`; declaran un parámetro `@NuevoID INT OUTPUT` y
+  hacen `SET @NuevoID = CAST(SCOPE_IDENTITY() AS INT)`. `RepositoryBase.InsertarAsync`
+  agrega ese parámetro de salida y llama a `ExecuteNonQueryAsync` (antes usaba
+  `ExecuteScalarAsync`), así las tres operaciones de escritura (alta,
+  actualización y baja) usan `ExecuteNonQuery` en todos los módulos.
